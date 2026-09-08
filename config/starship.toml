@@ -1,0 +1,163 @@
+# Starship 配置文件 — 复刻 ohmyzsh ys 主题样式,去除 git/vcs 状态部分
+# 文档: https://starship.rs/zh-CN/config/
+# 原主题: https://github.com/ohmyzsh/ohmyzsh/blob/master/themes/ys.zsh-theme
+#
+# 期望效果:
+#   # <user> @ <host> in <path> [<HH:MM:SS>] C:<exitcode-on-failure>
+#   $ <command>
+# 例如:
+#   # user @ host in ~/code [21:47:42]
+#   $ ls
+#   (失败时末尾追加 C:1 之类)
+
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# 与 ys 一致:提示符之间插入空行
+add_newline = true
+
+# 主提示符布局(一行头上,# user @ host in dir [time] [status],然后换行显示 $)
+format = """
+[# ](bold blue)\
+$username\
+[ @ ](white)\
+$hostname\
+[ in ](white)\
+$directory\
+$custom_venv\
+[ ](white)\
+$time\
+$status\
+$line_break\
+$character\
+"""
+
+# 提示符字符:ys 主题用红色加粗的 $
+[character]
+success_symbol = '[\$](bold red)'
+error_symbol = '[\$](bold red)'
+vimcmd_symbol = '[\$](bold red)'
+vimcmd_replace_one_symbol = '[\$](bold red)'
+vimcmd_replace_symbol = '[\$](bold red)'
+vimcmd_visual_symbol = '[\$](bold red)'
+
+# 用户名:非 root 青色,root 黑字黄底(对齐 ys 的 %(#) 条件)
+[username]
+show_always = true
+style_user = 'cyan bold'
+style_root = 'bg:yellow fg:black bold'
+format = '[$user]($style)'
+disabled = false
+
+# 主机名:绿色
+[hostname]
+ssh_only = false
+trim_at = '.'
+style = 'green bold'
+format = '[$hostname]($style)'
+disabled = false
+
+# 目录:黄色加粗,显示完整路径,不截断到 git 仓库
+[directory]
+style = 'yellow bold'
+format = '[$path]($style)[$read_only]($read_only_style)'
+truncation_length = 99
+truncate_to_repo = false
+home_symbol = '~'
+read_only = ' 🔒'
+read_only_style = 'red'
+
+# 时间:24 小时制 HH:MM:SS,带方括号,白色
+[time]
+disabled = false
+format = '[\[$time\]]($style) '
+time_format = '%T'
+utc_time_offset = 'local'
+style = 'white'
+
+# 退出码:仅在失败时显示 C:<code>(模仿 ys 的 exit_code 行为)
+[status]
+disabled = false
+format = '[C:](white)[$common_meaning$signal_name$maybe_int]($style)'
+symbol = ''
+success_symbol = ''
+recognize_signal_code = true
+map_symbol = false
+style = 'red'
+success_style = ''
+failure_style = 'red'
+
+# 虚拟环境(venv):对齐 ys 的 virtenv_prompt 显示绿色 venv 名
+[custom.venv]
+command = 'basename "$VIRTUAL_ENV"'
+when = ''' test -n "$VIRTUAL_ENV" '''
+detect_env_vars = ['VIRTUAL_ENV']
+format = '[$output](green bold)'
+style = 'green bold'
+disabled = false
+
+# 显式禁用所有 VCS / git 相关模块,实现"去除 git 状态部分"
+[vcs]
+disabled = true
+
+[git_branch]
+disabled = true
+
+[git_commit]
+disabled = true
+
+[git_state]
+disabled = true
+
+[git_metrics]
+disabled = true
+
+[git_status]
+disabled = true
+
+[hg_branch]
+disabled = true
+
+[hg_state]
+disabled = true
+
+[pijul_channel]
+disabled = true
+
+[fossil_branch]
+disabled = true
+
+[fossil_metrics]
+disabled = true
+
+[vcsh]
+disabled = true
+
+# ys 主题没有包版本信息,也禁用
+[package]
+disabled = true
+
+# ys 主题不显示语言运行时版本,统一禁用以下模块以保持纯净外观
+[aws]
+disabled = true
+[azure]
+disabled = true
+[gcloud]
+disabled = true
+[openstack]
+disabled = true
+[kubernetes]
+disabled = true
+[docker_context]
+disabled = true
+[nix_shell]
+disabled = true
+[guix_shell]
+disabled = true
+[conda]
+disabled = true
+[pixi]
+disabled = true
+[mise]
+disabled = true
+[spack]
+disabled = true
