@@ -61,6 +61,23 @@ curl -fLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraC
 unzip -o FiraCode.zip -d FiraCode && rm FiraCode.zip && fc-cache -f
 ```
 
+## 脱敏要求（分享 / AI 会话前必做）
+
+凡是把终端输出、日志、配置**发给别人或 AI 助手看**（截图、粘贴、对话引用），必须先脱敏：
+
+- 主机名、用户名、IP、内部域名 → 替换为 `host`、`user`、`x.x.x.x` 等占位符
+- token、密钥、密码、cookie、私钥 → 一律替换为 `***`，不要展示任何真实片段
+- 内部路径、项目代号 → 泛化为 `~/project` 之类的通用形式
+
+```
+# 原始
+# user @ my-real-host in ~/code [13:42:02]
+# 脱敏后
+# user @ host in ~/code [13:42:02]
+```
+
+AI 编码助手（Copilot 等）在本机工作时引用的输出同样适用本要求。
+
 ## 目录结构
 
 ```
