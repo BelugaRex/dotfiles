@@ -78,11 +78,30 @@ unzip -o FiraCode.zip -d FiraCode && rm FiraCode.zip && fc-cache -f
 
 AI 编码助手（Copilot 等）在本机工作时引用的输出同样适用本要求。
 
+## Agent Skills（AI 编程助手技能包）
+
+`skills/` 内是本人使用的 agent skills，共 **49 个**，归属 4 个技能家族 + 一批独立技能：
+
+| 家族 | 数量 | 说明 |
+|---|---|---|
+| `caveman` 系列 | 6 | 超压缩沟通模式（省 token），含 commit 生成、review、统计等子命令 |
+| `pua` 系列 | 21 | 生产率教练模式；多语言版（en/ja）+ 子命令别名（kpi / loop / on / off / pro / team-status 等） |
+| `planning-with-files` 系列 | 7 | Manus 式文件规划（task_plan / findings / progress），含 ar / de / es / zh / zht 翻译版 |
+| 职级模式 `p7` `p9` `p10` | 3 | P7 方案执行 / P9 Tech Lead 任务拆解 / P10 CTO 战略规划 |
+| 独立技能 | 12 | 见下 |
+
+独立技能：`answer-framework`（问答框架）、`cavecrew`（子代理协作）、`double-check`（改动双重校验）、`karpathy-guidelines`（编码守则）、`ding`（钉内/钉外职场提醒）、`mama`（妈妈唠叨模式）、`yes`（夸夸模式）、`shot`（PUA 速查注入）、`pro`（PUA Pro 扩展）、`i-have-adhd`（ADHD 友好输出）、`improve-codebase-architecture`（架构扫描报告）、`agi-gallery`
+
+`install.sh` 会把它们逐个软链接到 `~/.agents/skills/`——**只链接、不覆盖**：目标机器上已存在的同名本地 skill 会被跳过。
+
+不同 agent 运行时的技能目录可能不同（如 `~/.claude/skills`），需要时仿照 install.sh 里的循环再加一条软链即可。
+
 ## 目录结构
 
 ```
 dotfiles/
 ├── install.sh           # 一键安装脚本
 ├── bashrc.d/custom.sh   # bash 自定义段落（PATH/历史/别名/starship/nvm）
-└── config/starship.toml # starship 主题（ohmyzsh ys 复刻，去 VCS 模块）
+├── config/starship.toml # starship 主题（ohmyzsh ys 复刻，去 VCS 模块）
+└── skills/              # 49 个 agent skills（pua / caveman / planning 等）
 ```

@@ -41,5 +41,21 @@ else
     echo "==> 已在 ~/.bashrc 末尾追加 loader"
 fi
 
+# ---------- 4. agent skills(逐个软链,不覆盖本地已有) ----------
+if [[ -d "$DOTFILES_DIR/skills" ]]; then
+    mkdir -p "$HOME/.agents/skills"
+    N=0
+    for SKILL_DIR in "$DOTFILES_DIR"/skills/*/; do
+        NAME=$(basename "$SKILL_DIR")
+        if [[ -e "$HOME/.agents/skills/$NAME" && ! -L "$HOME/.agents/skills/$NAME" ]]; then
+            echo "==> 跳过已存在的本地 skill: $NAME"
+            continue
+        fi
+        ln -sfn "${SKILL_DIR%/}" "$HOME/.agents/skills/$NAME"
+        N=$((N+1))
+    done
+    echo "==> 已链接 $N 个 agent skills → ~/.agents/skills/"
+fi
+
 echo ""
 echo "完成!执行 'exec bash' 立即生效。"
