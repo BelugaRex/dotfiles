@@ -35,6 +35,32 @@ scp any-machine:~/.local/bin/rtk ~/.local/bin/rtk
 
 或在目标服务器上按官方方式重装。
 
+## 字体美化（本地终端，服务器无需安装）
+
+提示符由**本地终端**渲染，字体是客户端配置，服务器上不用装任何字体。
+
+当前环境的字体方案：
+
+- **VS Code 集成终端**：FiraCode Nerd Font（`"terminal.integrated.fontFamily": "'FiraCode Nerd Font'"`）
+- **Windows Terminal**：未单独配置，使用默认 Cascadia Mono
+
+本主题刻意只用纯文本符号 + emoji，不依赖 Nerd Font 图标——没装字体也能完整显示，装了则额外获得连字（ligatures）与图标字形能力。
+
+**Windows（WSL 上层）安装 FiraCode Nerd Font：**
+
+1. 从 [nerd-fonts releases](https://github.com/ryanoasis/nerd-fonts/releases/latest) 下载 `FiraCode.zip`
+2. 解压后全选 ttf 文件 → 右键「安装」
+3. VS Code 设置加：`"terminal.integrated.fontFamily": "'FiraCode Nerd Font'"`
+4. （可选）Windows Terminal → 设置 → 默认值 → 外观 → 字体 → `FiraCode Nerd Font`
+
+**Linux 本机/桌面（可选）：**
+
+```bash
+mkdir -p ~/.local/share/fonts && cd ~/.local/share/fonts
+curl -fLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
+unzip -o FiraCode.zip -d FiraCode && rm FiraCode.zip && fc-cache -f
+```
+
 ## 目录结构
 
 ```
