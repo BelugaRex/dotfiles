@@ -92,9 +92,9 @@ AI 编码助手（Copilot 等）在本机工作时引用的输出同样适用本
 
 独立技能：`answer-framework`（问答框架）、`cavecrew`（子代理协作）、`double-check`（改动双重校验）、`karpathy-guidelines`（编码守则）、`ding`（钉内/钉外职场提醒）、`mama`（妈妈唠叨模式）、`yes`（夸夸模式）、`shot`（PUA 速查注入）、`pro`（PUA Pro 扩展）、`i-have-adhd`（ADHD 友好输出）、`improve-codebase-architecture`（架构扫描报告）、`agi-gallery`
 
-`install.sh` 会把它们逐个软链接到 `~/.agents/skills/`——**只链接、不覆盖**：目标机器上已存在的同名本地 skill 会被跳过。
+`install.sh` 会把它们**复制**为真实目录到 `~/.agents/skills/`（仓库为唯一来源，重跑即覆盖更新）。不用软链是因为部分工具（如 VS Code 的 Copilot MCP + Agent Skills Manager 扩展）用 `readdir` 判断目录类型，不跟随软链，会导致技能列表显示为空。
 
-不同 agent 运行时的技能目录可能不同（如 `~/.claude/skills`），需要时仿照 install.sh 里的循环再加一条软链即可。
+每次更新仓库后重跑 `install.sh` 即可同步；通过其他工具（如该扩展的 skills.sh 搜索）安装到 `~/.agents/skills/` 的技能不会被脚本动到（除非与仓库内技能同名，以仓库为准）。
 
 ## 目录结构
 

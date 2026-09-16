@@ -41,20 +41,21 @@ else
     echo "==> 已在 ~/.bashrc 末尾追加 loader"
 fi
 
-# ---------- 4. agent skills(逐个软链,不覆盖本地已有) ----------
+# ---------- 4. agent skills(复制为真实目录,兼容不跟随软链的工具,如 Copilot MCP 扩展) ----------
 if [[ -d "$DOTFILES_DIR/skills" ]]; then
     mkdir -p "$HOME/.agents/skills"
+    # 清理旧版软链方式的链接项(只删软链,不动真实目录)
+    for ITEM in "$HOME"/.agents/skills/*; do
+        [[ -L "$ITEM" ]] && rm -f "$ITEM"
+    done
     N=0
     for SKILL_DIR in "$DOTFILES_DIR"/skills/*/; do
         NAME=$(basename "$SKILL_DIR")
-        if [[ -e "$HOME/.agents/skills/$NAME" && ! -L "$HOME/.agents/skills/$NAME" ]]; then
-            echo "==> 跳过已存在的本地 skill: $NAME"
-            continue
-        fi
-        ln -sfn "${SKILL_DIR%/}" "$HOME/.agents/skills/$NAME"
+        rm -rf "$HOME/.agents/skills/$NAME"
+        cp -a "${SKILL_DIR%/}" "$HOME/.agents/skills/$NAME"
         N=$((N+1))
     done
-    echo "==> 已链接 $N 个 agent skills → ~/.agents/skills/"
+    echo "==> 已同步 $N 个 agent skills → ~/.agents/skills/ (真实目录)"
 fi
 
 echo ""
