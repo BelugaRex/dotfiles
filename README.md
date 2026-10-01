@@ -1,6 +1,6 @@
 # dotfiles
 
-个人 bash 环境配置，方便在不同 Linux 服务器间保持一致的风格。
+个人 bash/zsh 环境配置，方便在 **Linux / macOS / Windows（Git Bash 或原生 PowerShell）** 之间保持一致风格。
 
 构成：**Starship 提示符（ohmyzsh ys 风格）+ 通用 bash 自定义 + 一键安装脚本**。
 
@@ -11,19 +11,31 @@
 $ ls
 ```
 
-## 在新服务器上使用
+## 在新机器上使用（Linux / macOS / Windows）
+
+**Linux / WSL / macOS / Windows Git Bash**（有 bash 即可）：
 
 ```bash
 git clone https://github.com/BelugaRex/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles && bash install.sh
-exec bash
+exec bash        # macOS 默认 zsh 的用户执行 exec zsh
 ```
 
-`install.sh` 做三件事（幂等，可重复执行）：
+`install.sh` 会自动探测平台（幂等，可重复执行）：
 
-1. 可选安装 starship（加 `--with-starship` 参数自动装）
-2. 把本仓库的 `starship.toml` 软链接到 `~/.config/`（原有文件自动备份）
-3. 在 `~/.bashrc` 末尾追加 loader，加载 `bashrc.d/custom.sh`（不动发行版自带的 bashrc）
+1. 可选安装 starship（加 `--with-starship` 参数；macOS 有 brew 走 `brew install`，否则官方脚本）
+2. 把本仓库的 `starship.toml` 软链到 `~/.config/`（原有文件自动备份；软链失败时退化为复制）
+3. 追加 loader 到 `~/.bashrc`；若装了 zsh、`$SHELL` 指向 zsh，或是 macOS（默认 shell 即 zsh），也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）
+
+**Windows 原生 PowerShell**（无 bash，本仓库脚本不覆盖此场景，手动三步）：
+
+```powershell
+winget install Starship.Starship            # 安装 starship
+echo $PROFILE                                # 查看 profile 文件路径
+# 1. 把仓库 powershell/profile.ps1 的内容追加进上面的文件(可先备份)
+# 2. 把仓库 config/starship.toml 复制到 $HOME\.config\starship.toml(~/.config 需自建)
+# 3. 重开 PowerShell
+```
 
 ## rtk（Token-Optimized CLI）
 
@@ -100,8 +112,9 @@ AI 编码助手（Copilot 等）在本机工作时引用的输出同样适用本
 
 ```
 dotfiles/
-├── install.sh           # 一键安装脚本
-├── bashrc.d/custom.sh   # bash 自定义段落（PATH/历史/别名/starship/nvm）
-├── config/starship.toml # starship 主题（ohmyzsh ys 复刻，去 VCS 模块）
-└── skills/              # 49 个 agent skills（pua / caveman / planning 等）
+├── install.sh             # 一键安装脚本(自动探测 Linux/macOS/Git Bash)
+├── bashrc.d/custom.sh     # bash/zsh 通用自定义(PATH/历史/别名/starship/nvm)
+├── powershell/profile.ps1 # Windows 原生 PowerShell profile
+├── config/starship.toml   # starship 主题(ohmyzsh ys 复刻,去 VCS 模块)
+└── skills/                # 49 个 agent skills(pua / caveman / planning 等)
 ```
