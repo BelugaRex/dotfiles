@@ -8,7 +8,7 @@
 #   Linux  → 解压到 ~/.local/share/fonts/FiraCode, 刷新 fontconfig 缓存
 #   macOS  → 有 brew 走 'brew install --cask font-fira-code-nerd-font';
 #             否则解压到 ~/Library/Fonts
-#   Windows(Git Bash 内) → 不适用, 按 README「字体美化」一节手动安装
+#   Windows → 不适用, 在原生 PowerShell 里执行 powershell/install.ps1
 #
 # 重要: 远端 SSH / VS Code Remote 场景下, 提示符由【客户端】终端渲染,
 #       字体要装在客户端(笔记本/PC)并在终端里选用; 本脚本适用于
@@ -53,10 +53,9 @@ font_already_installed() {
 
 case "$PLATFORM" in
     windows-gitbash|unknown)
-        echo "本脚本只覆盖 Linux / macOS。Windows 请按 README「字体美化」手动安装:"
-        echo "  1. 从 https://github.com/ryanoasis/nerd-fonts/releases/latest 下载 FiraCode.zip"
-        echo "  2. 解压后全选 ttf 文件 → 右键「安装」"
-        echo "  3. VS Code 设置 \"terminal.integrated.fontFamily\": \"'FiraCode Nerd Font'\""
+        echo "本脚本只覆盖 Linux / macOS。Windows 客户端请在原生 PowerShell 里执行:"
+        echo "  powershell -ExecutionPolicy Bypass -File powershell/install.ps1"
+        echo "(它会用 winget 装 starship, 并把 FiraCode Nerd Font 装到用户级字体目录)"
         exit 0
         ;;
 esac

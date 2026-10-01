@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # dotfiles 一键安装 —— 在 Linux / macOS / Windows Git Bash 上执行
 # 用法:
-#   bash install.sh                     # 完整安装(starship + 软链配置 + shell loader + skills 同步)
-#   bash install.sh --without-starship  # 跳过 starship(已装过/网络受限); --with-starship 兼容保留
+#   bash install.sh                      # 完整安装(starship + 字体 + 软链配置 + shell loader + skills 同步)
+#   bash install.sh --without-starship   # 跳过 starship(已装过/网络受限); --with-starship 兼容保留
+#   bash install.sh --without-font       # 跳过 FiraCode Nerd Font(服务器上用不到时可省 60MB 下载)
 # 说明:
 #   Windows 原生(PowerShell)没有 bash,无法运行本脚本,
-#   请按 README「Windows 原生」一节手动配置 powershell/profile.ps1 与 starship.toml。
+#   请在原生 PowerShell 里执行 powershell/install.ps1(见 README「Windows 原生」)。
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,11 +24,13 @@ echo "==> 检测到平台: $PLATFORM"
 # 说明: starship 是提示符核心, 缺失时 custom.sh 的初始化会被跳过、终端保持默认样式,
 #       因此默认安装; 装用户级目录, 不动系统路径, 也不影响机器上其他用户。
 SKIP_STARSHIP=false
+SKIP_FONT=false
 for ARG in "$@"; do
     case "$ARG" in
         --without-starship|--no-starship) SKIP_STARSHIP=true ;;
+        --without-font|--no-font)         SKIP_FONT=true ;;
         --with-starship) ;;   # 兼容旧写法: 现在本来就是默认行为
-        *) echo "警告: 未识别的参数 '$ARG'(仅支持 --without-starship)" >&2 ;;
+        *) echo "警告: 未识别的参数 '$ARG'(仅支持 --without-starship / --without-font)" >&2 ;;
     esac
 done
 
@@ -65,7 +68,21 @@ else
     echo "    联网后重跑 'bash install.sh' 即可(各步骤幂等); 手动安装见 README「在新机器上使用」."
 fi
 
-# ---------- 2. starship.toml → ~/.config/starship.toml ----------
+# ---------- 2. FiraCode Nerd Font(用户级安装) ----------
+# 提示符由客户端终端渲染, 服务器上装字体无害但无用(纯文本主题也不强依赖字体);
+# 全新客户端上这一步才真正生效。安装细节与幂等判断见 fonts/install-font.sh。
+if $SKIP_FONT; then
+    echo "==> 已按参数跳过字体安装。"
+elif [[ "$PLATFORM" == windows-gitbash ]]; then
+    echo "==> Windows 客户端: 请在原生 PowerShell 里执行 powershell/install.ps1(含字体安装)。"
+elif bash "$DOTFILES_DIR/fonts/install-font.sh"; then
+    : # 安装/跳过信息由 install-font.sh 自行输出
+else
+    echo "==> 字体自动安装失败(网络受限?)。"
+    echo "    稍后单独重跑 'bash fonts/install-font.sh' 即可, 不影响其余配置。"
+fi
+
+# ---------- 3. starship.toml → ~/.config/starship.toml ----------
 mkdir -p "$HOME/.config"
 CONFIG_TARGET="$HOME/.config/starship.toml"
 if [[ -e "$CONFIG_TARGET" && ! -L "$CONFIG_TARGET" ]]; then
@@ -82,7 +99,7 @@ else
     echo "    (以后仓库更新需重跑本脚本覆盖,或改为手动 git pull 后复制)"
 fi
 
-# ---------- 3. shell loader(幂等,写入前自动备份) ----------
+# ---------- 4. shell loader(幂等,写入前自动备份) ----------
 LOADER_SNIPPET="[ -f \"$DOTFILES_DIR/bashrc.d/custom.sh\" ] && . \"$DOTFILES_DIR/bashrc.d/custom.sh\""
 append_loader() {
     local RC="$1"
@@ -118,7 +135,7 @@ if $NEED_ZSHRC; then
     append_loader "$HOME/.zshrc"
 fi
 
-# ---------- 4. agent skills(复制为真实目录,兼容不跟随软链的工具,如 Copilot MCP 扩展) ----------
+# ---------- 5. agent skills(复制为真实目录,兼容不跟随软链的工具,如 Copilot MCP 扩展) ----------
 if [[ -d "$DOTFILES_DIR/skills" ]]; then
     mkdir -p "$HOME/.agents/skills"
     # 清理旧版软链方式的链接项(只删软链,不动真实目录)
@@ -137,7 +154,6 @@ fi
 
 echo ""
 echo "完成! 提示符由 starship 渲染(ohmyzsh ys 风格), 配置经本仓库软链生效。"
-echo "  可选美化: bash fonts/install-font.sh 一键安装 FiraCode Nerd Font(详见 README「字体美化」)"
 case "$PLATFORM" in
     macos)
         echo "  执行 'exec zsh' 立即生效(或重开终端)。"

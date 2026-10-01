@@ -11,7 +11,9 @@
 $ ls
 ```
 
-## 在新机器上使用（Linux / macOS / Windows）
+## 从零恢复（双端全新机器）
+
+目标是：服务器和客户端**都是空白机器**时，各跑一条命令即可恢复。SSH 密钥、token 等凭据**不在本仓库覆盖范围内**，需单独恢复。
 
 **Linux / WSL / macOS / Windows Git Bash**（有 bash 即可）：
 
@@ -19,28 +21,34 @@ $ ls
 git clone https://github.com/BelugaRex/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles && bash install.sh
 exec bash        # macOS 默认 zsh 的用户执行 exec zsh
+```
 
-# 可选: 一键安装 FiraCode Nerd Font(本地图形终端场景; SSH 客户端见下方「字体美化」)
-bash fonts/install-font.sh
+**没有 git 的空白机器**（curl 兜底，任何有 bash 的机器都行）：
+
+```bash
+curl -sSL https://github.com/BelugaRex/dotfiles/archive/refs/heads/main.tar.gz | tar xz
+cd dotfiles-main && bash install.sh && exec bash   # macOS: exec zsh
 ```
 
 `install.sh` 会自动探测平台（幂等，可重复执行）：
 
 1. **默认安装 starship** 到用户级 `~/.local/bin`（无需 sudo；macOS 有 brew 走 `brew install`，否则官方脚本；已装则跳过，加 `--without-starship` 可显式跳过）
-2. 把本仓库的 `starship.toml` 软链到 `~/.config/`（原有文件自动备份；软链失败时退化为复制）
-3. 追加 loader 到 `~/.bashrc`；若装了 zsh、`$SHELL` 指向 zsh，或是 macOS（默认 shell 即 zsh），也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）
+2. **默认安装 FiraCode Nerd Font** 到用户级字体目录（幂等；服务器上无害但用不到，可加 `--without-font` 省一次 60MB 下载；Windows Git Bash 会提示改用 install.ps1）
+3. 把本仓库的 `starship.toml` 软链到 `~/.config/`（原有文件自动备份；软链失败时退化为复制）
+4. 追加 loader 到 `~/.bashrc`；若装了 zsh、`$SHELL` 指向 zsh，或是 macOS（默认 shell 即 zsh），也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）
 
-**macOS 用户**：与上面完全同一套流程，无需额外步骤——脚本自动探测 Darwin、默认安装 starship（有 brew 走 `brew install starship`，否则官方脚本装到 `~/.local/bin`）、loader 自动写入 `~/.zshrc`，提示符即由 starship 渲染；字体见下方「字体美化」一节（或直接执行 `bash fonts/install-font.sh` 一键安装）。
+**macOS 用户**：与上面完全同一套流程，无需额外步骤——脚本自动探测 Darwin、默认安装 starship（有 brew 走 `brew install starship`，否则官方脚本装到 `~/.local/bin`）、loader 自动写入 `~/.zshrc`、字体自动装到用户目录，提示符即由 starship 渲染。
 
-**Windows 原生 PowerShell**（无 bash，本仓库脚本不覆盖此场景，手动三步）：
+**Windows 原生 PowerShell**（客户端是 Windows 时的原生方案）：
 
 ```powershell
-winget install Starship.Starship            # 安装 starship
-echo $PROFILE                                # 查看 profile 文件路径
-# 1. 把仓库 powershell/profile.ps1 的内容追加进上面的文件(可先备份)
-# 2. 把仓库 config/starship.toml 复制到 $HOME\.config\starship.toml(~/.config 需自建)
-# 3. 重开 PowerShell
+git clone https://github.com/BelugaRex/dotfiles.git $HOME\.dotfiles
+cd $HOME\.dotfiles
+powershell -ExecutionPolicy Bypass -File .\powershell\install.ps1
+# 没有 git 时: Invoke-WebRequest https://github.com/BelugaRex/dotfiles/archive/refs/heads/main.zip -OutFile dotfiles.zip; Expand-Archive dotfiles.zip -DestinationPath .; cd dotfiles-main
 ```
+
+`install.ps1` 自动完成：winget 装 starship → 把 FiraCode Nerd Font 的 4 个 ttf 装到用户级字体目录并写 HKCU 注册表（无需管理员）→ 复制 `starship.toml` → 向 `$PROFILE`（CurrentUserAllHosts，VS Code 终端也生效）写入 loader。幂等可重跑。PowerShell 5.1 与 pwsh 7 的 profile 相互独立，两个宿主都想要就各跑一次。装完新开 PowerShell，终端字体选 `FiraCode Nerd Font`。
 
 ## rtk（Token-Optimized CLI）
 
@@ -63,7 +71,7 @@ scp any-machine:~/.local/bin/rtk ~/.local/bin/rtk
 
 本主题刻意只用纯文本符号 + emoji，不依赖 Nerd Font 图标——没装字体也能完整显示，装了则额外获得连字（ligatures）与图标字形能力。
 
-**一键安装（Linux / macOS，用户级、无需 sudo、幂等）：**
+**一键安装（Linux / macOS，用户级、无需 sudo、幂等）**（`install.sh` 已默认自动执行，此命令用于补装/重装）：
 
 ```bash
 bash fonts/install-font.sh
@@ -143,7 +151,8 @@ AI 编码助手（Copilot 等）在本机工作时引用的输出同样适用本
 dotfiles/
 ├── install.sh             # 一键安装脚本(自动探测 Linux/macOS/Git Bash)
 ├── bashrc.d/custom.sh     # bash/zsh 通用自定义(PATH/历史/别名/starship/nvm)
-├── powershell/profile.ps1 # Windows 原生 PowerShell profile
+├── powershell/install.ps1 # Windows 原生一键安装(starship + 字体 + profile loader)
+├── powershell/profile.ps1 # Windows 原生 PowerShell profile(由 install.ps1 写入 loader)
 ├── config/starship.toml   # starship 主题(ohmyzsh ys 复刻,去 VCS 模块)
 ├── fonts/install-font.sh  # FiraCode Nerd Font 一键安装(用户级,Linux/macOS)
 └── skills/                # 49 个 agent skills(pua / caveman / planning 等)

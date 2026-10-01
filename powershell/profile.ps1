@@ -1,5 +1,8 @@
 # dotfiles PowerShell profile —— Windows 原生(PowerShell 5.1 / pwsh 7+)使用
 # 用法:
+#   推荐: 在仓库根目录执行 powershell -ExecutionPolicy Bypass -File .\powershell\install.ps1
+#         它会自动装 starship 与字体, 并把本文件以 loader 方式挂进 $PROFILE。
+#   以下为手动配置的完整步骤:
 #   1. 安装 starship(任选其一):
 #        winget install Starship.Starship        # 官方推荐
 #        scoop install starship                  # 或 scoop
