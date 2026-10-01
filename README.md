@@ -27,6 +27,8 @@ exec bash        # macOS 默认 zsh 的用户执行 exec zsh
 2. 把本仓库的 `starship.toml` 软链到 `~/.config/`（原有文件自动备份；软链失败时退化为复制）
 3. 追加 loader 到 `~/.bashrc`；若装了 zsh、`$SHELL` 指向 zsh，或是 macOS（默认 shell 即 zsh），也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）
 
+**macOS 用户**：与上面完全同一套流程，无需额外步骤——脚本自动探测 Darwin、`--with-starship` 走 `brew install starship`、loader 自动写入 `~/.zshrc`，提示符即由 starship 渲染；字体见下方「字体美化」一节（`brew install --cask font-fira-code-nerd-font`）。
+
 **Windows 原生 PowerShell**（无 bash，本仓库脚本不覆盖此场景，手动三步）：
 
 ```powershell
@@ -64,6 +66,20 @@ scp any-machine:~/.local/bin/rtk ~/.local/bin/rtk
 2. 解压后全选 ttf 文件 → 右键「安装」
 3. VS Code 设置加：`"terminal.integrated.fontFamily": "'FiraCode Nerd Font'"`
 4. （可选）Windows Terminal → 设置 → 默认值 → 外观 → 字体 → `FiraCode Nerd Font`
+
+**macOS 安装 FiraCode Nerd Font：**
+
+```bash
+brew install --cask font-fira-code-nerd-font
+```
+
+（没装 brew 的话：从 [nerd-fonts releases](https://github.com/ryanoasis/nerd-fonts/releases/latest) 下载 `FiraCode.zip`，解压后把 ttf 拖进「字体册.app」，或拷到 `~/Library/Fonts/`）
+
+装完在 macOS 客户端配置：
+
+- **VS Code**：设置 `"terminal.integrated.fontFamily": "'FiraCode Nerd Font'"`
+- **系统 Terminal.app**：终端 → 设置 → 描述文件 → 文本 → 字体 → `FiraCode Nerd Font`
+- **iTerm2**：Settings → Profiles → Text → Font → `FiraCode Nerd Font`
 
 **Linux 本机/桌面（可选）：**
 
