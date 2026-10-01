@@ -56,6 +56,9 @@ if $SKIP_STARSHIP; then
     echo "==> 已按参数跳过 starship 安装(提示符将保持默认样式)。"
 elif command -v starship >/dev/null 2>&1; then
     echo "==> 已检测到 starship: $(starship --version 2>/dev/null | head -1)"
+elif [[ -x "$HOME/.local/bin/starship" ]]; then
+    # 重跑场景: 二进制已在但当前会话 PATH 还没带上 ~/.local/bin, 不重复下载
+    echo "==> 已检测到 starship: $("$HOME/.local/bin/starship" --version 2>/dev/null | head -1)"
 elif install_starship; then
     export PATH="$HOME/.local/bin:$PATH"   # 让当前会话立即生效(新终端由 custom.sh 负责)
     if command -v starship >/dev/null 2>&1; then
