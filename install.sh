@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # dotfiles 一键安装 —— 在 Linux / macOS / Windows Git Bash 上执行
 # 用法:
-#   bash install.sh                    # 基础安装(链接配置 + 追加 loader)
-#   bash install.sh --with-starship    # 同时自动安装 starship
+#   bash install.sh                     # 完整安装(starship + 软链配置 + shell loader + skills 同步)
+#   bash install.sh --without-starship  # 跳过 starship(已装过/网络受限); --with-starship 兼容保留
 # 说明:
 #   Windows 原生(PowerShell)没有 bash,无法运行本脚本,
 #   请按 README「Windows 原生」一节手动配置 powershell/profile.ps1 与 starship.toml。
@@ -19,28 +19,50 @@ case "$(uname -s 2>/dev/null || echo unknown)" in
 esac
 echo "==> 检测到平台: $PLATFORM"
 
-# ---------- 1. starship(可选) ----------
-if ! command -v starship >/dev/null 2>&1; then
-    if [[ "${1:-}" == "--with-starship" ]]; then
-        echo "==> 安装 starship..."
-        case "$PLATFORM" in
-            macos)
-                # 有 brew 优先走 brew;否则用官方脚本
-                if command -v brew >/dev/null 2>&1; then
-                    brew install starship
-                else
-                    curl -sS https://starship.rs/install.sh | sh
-                fi
-                ;;
-            *)
-                # Linux / Windows Git Bash 均适用官方脚本
-                curl -sS https://starship.rs/install.sh | sh
-                ;;
-        esac
+# ---------- 1. starship(默认自动装到用户级 ~/.local/bin,无需 sudo) ----------
+# 说明: starship 是提示符核心, 缺失时 custom.sh 的初始化会被跳过、终端保持默认样式,
+#       因此默认安装; 装用户级目录, 不动系统路径, 也不影响机器上其他用户。
+SKIP_STARSHIP=false
+for ARG in "$@"; do
+    case "$ARG" in
+        --without-starship|--no-starship) SKIP_STARSHIP=true ;;
+        --with-starship) ;;   # 兼容旧写法: 现在本来就是默认行为
+        *) echo "警告: 未识别的参数 '$ARG'(仅支持 --without-starship)" >&2 ;;
+    esac
+done
+
+install_starship() {
+    mkdir -p "$HOME/.local/bin"
+    case "$PLATFORM" in
+        macos)
+            # 有 brew 优先走 brew;否则用官方脚本装到用户级目录
+            if command -v brew >/dev/null 2>&1; then
+                brew install starship
+            else
+                curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+            fi
+            ;;
+        *)
+            # Linux / Windows Git Bash 均适用官方脚本(固定用户级目录, 避免 sudo)
+            curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+            ;;
+    esac
+}
+
+if $SKIP_STARSHIP; then
+    echo "==> 已按参数跳过 starship 安装(提示符将保持默认样式)。"
+elif command -v starship >/dev/null 2>&1; then
+    echo "==> 已检测到 starship: $(starship --version 2>/dev/null | head -1)"
+elif install_starship; then
+    export PATH="$HOME/.local/bin:$PATH"   # 让当前会话立即生效(新终端由 custom.sh 负责)
+    if command -v starship >/dev/null 2>&1; then
+        echo "==> starship 安装完成: $(starship --version 2>/dev/null | head -1)"
     else
-        echo "==> 未检测到 starship。可运行 'bash install.sh --with-starship' 自动装,"
-        echo "    或手动安装后重跑本脚本(不装也能用,只是提示符还是默认样式)。"
+        echo "==> starship 已装到 ~/.local/bin(重开终端后生效)"
     fi
+else
+    echo "==> starship 自动安装失败(网络受限?)"
+    echo "    联网后重跑 'bash install.sh' 即可(各步骤幂等); 手动安装见 README「在新机器上使用」."
 fi
 
 # ---------- 2. starship.toml → ~/.config/starship.toml ----------
@@ -114,11 +136,13 @@ if [[ -d "$DOTFILES_DIR/skills" ]]; then
 fi
 
 echo ""
+echo "完成! 提示符由 starship 渲染(ohmyzsh ys 风格), 配置经本仓库软链生效。"
+echo "  可选美化: bash fonts/install-font.sh 一键安装 FiraCode Nerd Font(详见 README「字体美化」)"
 case "$PLATFORM" in
     macos)
-        echo "完成!执行 'exec zsh' 立即生效(或重开终端)。"
+        echo "  执行 'exec zsh' 立即生效(或重开终端)。"
         ;;
     *)
-        echo "完成!执行 'exec bash' 立即生效(或重开终端)。"
+        echo "  执行 'exec bash' 立即生效(或重开终端)。"
         ;;
 esac

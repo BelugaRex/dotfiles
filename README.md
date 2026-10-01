@@ -2,7 +2,7 @@
 
 个人 bash/zsh 环境配置，方便在 **Linux / macOS / Windows（Git Bash 或原生 PowerShell）** 之间保持一致风格。
 
-构成：**Starship 提示符（ohmyzsh ys 风格）+ 通用 bash 自定义 + 一键安装脚本**。
+构成：**Starship 提示符（ohmyzsh ys 风格）+ 通用 bash 自定义 + 一键安装脚本 + 字体安装脚本**。
 
 效果：
 
@@ -19,15 +19,18 @@ $ ls
 git clone https://github.com/BelugaRex/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles && bash install.sh
 exec bash        # macOS 默认 zsh 的用户执行 exec zsh
+
+# 可选: 一键安装 FiraCode Nerd Font(本地图形终端场景; SSH 客户端见下方「字体美化」)
+bash fonts/install-font.sh
 ```
 
 `install.sh` 会自动探测平台（幂等，可重复执行）：
 
-1. 可选安装 starship（加 `--with-starship` 参数；macOS 有 brew 走 `brew install`，否则官方脚本）
+1. **默认安装 starship** 到用户级 `~/.local/bin`（无需 sudo；macOS 有 brew 走 `brew install`，否则官方脚本；已装则跳过，加 `--without-starship` 可显式跳过）
 2. 把本仓库的 `starship.toml` 软链到 `~/.config/`（原有文件自动备份；软链失败时退化为复制）
 3. 追加 loader 到 `~/.bashrc`；若装了 zsh、`$SHELL` 指向 zsh，或是 macOS（默认 shell 即 zsh），也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）
 
-**macOS 用户**：与上面完全同一套流程，无需额外步骤——脚本自动探测 Darwin、`--with-starship` 走 `brew install starship`、loader 自动写入 `~/.zshrc`，提示符即由 starship 渲染；字体见下方「字体美化」一节（`brew install --cask font-fira-code-nerd-font`）。
+**macOS 用户**：与上面完全同一套流程，无需额外步骤——脚本自动探测 Darwin、默认安装 starship（有 brew 走 `brew install starship`，否则官方脚本装到 `~/.local/bin`）、loader 自动写入 `~/.zshrc`，提示符即由 starship 渲染；字体见下方「字体美化」一节（或直接执行 `bash fonts/install-font.sh` 一键安装）。
 
 **Windows 原生 PowerShell**（无 bash，本仓库脚本不覆盖此场景，手动三步）：
 
@@ -59,6 +62,16 @@ scp any-machine:~/.local/bin/rtk ~/.local/bin/rtk
 - **Windows Terminal**：未单独配置，使用默认 Cascadia Mono
 
 本主题刻意只用纯文本符号 + emoji，不依赖 Nerd Font 图标——没装字体也能完整显示，装了则额外获得连字（ligatures）与图标字形能力。
+
+**一键安装（Linux / macOS，用户级、无需 sudo、幂等）：**
+
+```bash
+bash fonts/install-font.sh
+```
+
+- Linux：解压到 `~/.local/share/fonts/FiraCode` 并刷新 fontconfig 缓存
+- macOS：有 brew 走 `brew install --cask font-fira-code-nerd-font`，否则解压到 `~/Library/Fonts`
+- Windows（Git Bash 内）/ 手动步骤见下文
 
 **Windows（WSL 上层）安装 FiraCode Nerd Font：**
 
@@ -132,5 +145,6 @@ dotfiles/
 ├── bashrc.d/custom.sh     # bash/zsh 通用自定义(PATH/历史/别名/starship/nvm)
 ├── powershell/profile.ps1 # Windows 原生 PowerShell profile
 ├── config/starship.toml   # starship 主题(ohmyzsh ys 复刻,去 VCS 模块)
+├── fonts/install-font.sh  # FiraCode Nerd Font 一键安装(用户级,Linux/macOS)
 └── skills/                # 49 个 agent skills(pua / caveman / planning 等)
 ```
