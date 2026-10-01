@@ -15,6 +15,14 @@ $ ls
 
 目标是：服务器和客户端**都是空白机器**时，各跑一条命令即可恢复。SSH 密钥、token 等凭据**不在本仓库覆盖范围内**，需单独恢复。
 
+客户端是哪种系统都覆盖，三端路径一览（服务器永远只跑 `install.sh`）：
+
+| 客户端系统 | 客户端本地恢复命令 | 装完还差的一步（终端里选字体） |
+|---|---|---|
+| Linux（含 WSL） | `bash install.sh`（字体/提示符全自动） | GNOME Terminal: 首选项→配置文件→文本→自定义字体；VS Code 见下 |
+| macOS | `bash install.sh`（自动写 `~/.zshrc`） | Terminal.app / iTerm2 / VS Code 选字体，见「字体美化」 |
+| Windows 原生 | `powershell -ExecutionPolicy Bypass -File .\powershell\install.ps1` | Windows Terminal: 设置→默认值→外观→字体；VS Code 见下 |
+
 **Linux / WSL / macOS / Windows Git Bash**（有 bash 即可）：
 
 ```bash
@@ -35,7 +43,7 @@ cd dotfiles-main && bash install.sh && exec bash   # macOS: exec zsh
 1. **默认安装 starship** 到用户级 `~/.local/bin`（无需 sudo；macOS 有 brew 走 `brew install`，否则官方脚本；已装则跳过，加 `--without-starship` 可显式跳过）
 2. **默认安装 FiraCode Nerd Font** 到用户级字体目录（幂等；服务器上无害但用不到，可加 `--without-font` 省一次 60MB 下载；Windows Git Bash 会提示改用 install.ps1）
 3. 把本仓库的 `starship.toml` 软链到 `~/.config/`（原有文件自动备份；软链失败时退化为复制）
-4. 追加 loader 到 `~/.bashrc`；若装了 zsh、`$SHELL` 指向 zsh，或是 macOS（默认 shell 即 zsh），也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）
+4. 追加 loader 到 `~/.bashrc`；只要机器上装了 zsh 也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）——日后切 zsh 立即生效
 
 **macOS 用户**：与上面完全同一套流程，无需额外步骤——脚本自动探测 Darwin、默认安装 starship（有 brew 走 `brew install starship`，否则官方脚本装到 `~/.local/bin`）、loader 自动写入 `~/.zshrc`、字体自动装到用户目录，提示符即由 starship 渲染。
 
@@ -109,6 +117,11 @@ mkdir -p ~/.local/share/fonts && cd ~/.local/share/fonts
 curl -fLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
 unzip -o FiraCode.zip -d FiraCode && rm FiraCode.zip && fc-cache -f
 ```
+
+装完在 Linux 客户端配置字体：
+
+- **GNOME Terminal**：首选项 → 配置文件 → 文本 → 自定义字体 → `FiraCode Nerd Font`
+- **Konsole**：设置 → 编辑当前配置文件 → 外观 → 字体 → `FiraCode Nerd Font`
 
 ## 脱敏要求（分享 / AI 会话前必做）
 

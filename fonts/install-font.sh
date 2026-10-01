@@ -7,7 +7,7 @@
 # 平台:
 #   Linux  → 解压到 ~/.local/share/fonts/FiraCode, 刷新 fontconfig 缓存
 #   macOS  → 有 brew 走 'brew install --cask font-fira-code-nerd-font';
-#             否则解压到 ~/Library/Fonts
+#             否则把 ttf 平铺进 ~/Library/Fonts
 #   Windows → 不适用, 在原生 PowerShell 里执行 powershell/install.ps1
 #
 # 重要: 远端 SSH / VS Code Remote 场景下, 提示符由【客户端】终端渲染,
@@ -30,7 +30,16 @@ print_hints() {
     echo ""
     echo "==> 接下来在终端里把字体设为 'FiraCode Nerd Font':"
     echo "    VS Code : \"terminal.integrated.fontFamily\": \"'FiraCode Nerd Font'\""
-    echo "    其他终端 : 见 README「字体美化」(GNOME Terminal / iTerm2 / Windows Terminal)"
+    case "$PLATFORM" in
+        macos)
+            echo "    Terminal.app : 设置 → 描述文件 → 文本 → 字体"
+            echo "    iTerm2       : Settings → Profiles → Text → Font"
+            ;;
+        *)
+            echo "    GNOME Terminal : 首选项 → 配置文件 → 文本 → 自定义字体"
+            echo "    其他终端       : 见 README「字体美化」"
+            ;;
+    esac
     echo "    注意     : SSH / VS Code Remote 场景字体由客户端渲染, 客户端也要装一份。"
 }
 
@@ -40,12 +49,14 @@ font_already_installed() {
         # 上游 fc-list 会收到 SIGPIPE; set -o pipefail 下整条管道状态为非零,
         # 导致已安装的字体被误判为未装(幂等失效)。用 grep -c 计数规避。
         local N
-        N=$(fc-list 2>/dev/null | grep -ci 'FiraCode' || true)
+        # 匹配 'FiraCode Nerd' 而不是裸 'FiraCode': 避免把普通版 Fira Code
+        # (brew cask font-fira-code 等途径装的)误判为 Nerd Font 已装。
+        N=$(fc-list 2>/dev/null | grep -ci 'FiraCode Nerd' || true)
         [ "${N:-0}" -gt 0 ] && return 0
         return 1
     fi
     if [ -d "$HOME/.local/share/fonts/FiraCode" ] \
-        || ls "$HOME/Library/Fonts"/*FiraCode* >/dev/null 2>&1; then
+        || ls "$HOME/Library/Fonts"/*FiraCodeNerdFont* >/dev/null 2>&1; then
         return 0
     fi
     return 1
@@ -83,18 +94,38 @@ if [ "$PLATFORM" = macos ] && command -v brew >/dev/null 2>&1; then
     exit 0
 fi
 
-# 其余情况: 下载 zip 解压到用户级字体目录
-if [ "$PLATFORM" = macos ]; then
-    FONT_DIR="$HOME/Library/Fonts"
-else
-    FONT_DIR="$HOME/.local/share/fonts"
-fi
+# 其余情况: 下载 zip 解压到用户级字体目录。
+# Linux → ~/.local/share/fonts/FiraCode 子目录(fontconfig 递归扫描, 子目录没问题)
+# macOS → ttf 平铺进 ~/Library/Fonts:
+#   CoreText 对子目录扫描不可靠(装了可能看不到), 且平铺后
+#   font_already_installed 的 glob 才能命中, 幂等才成立。
+extract_zip() {
+    if command -v unzip >/dev/null 2>&1; then
+        unzip -oq "$1" -d "$2"
+    elif command -v python3 >/dev/null 2>&1; then
+        echo "==> 未找到 unzip, 改用 python3 zipfile 解压"
+        python3 -m zipfile -e "$1" "$2"
+    else
+        echo "错误: 解压需要 unzip 或 python3 之一, 都没有请先装一个" >&2
+        return 1
+    fi
+}
+
 echo "==> 下载 FiraCode Nerd Font(约 60MB, 来自 nerd-fonts releases)..."
 curl -fSL "$FONT_ZIP_URL" -o "$TMP_ZIP"
-mkdir -p "$FONT_DIR"
-unzip -oq "$TMP_ZIP" -d "$FONT_DIR/FiraCode"
-rm -f "$TMP_ZIP"
-echo "==> 已解压 → $FONT_DIR/FiraCode"
+if [ "$PLATFORM" = macos ]; then
+    EXTRACT_DIR=$(mktemp -d)
+    extract_zip "$TMP_ZIP" "$EXTRACT_DIR"
+    mv "$EXTRACT_DIR"/*.ttf "$HOME/Library/Fonts/"
+    rm -rf "$EXTRACT_DIR"
+    rm -f "$TMP_ZIP"
+    echo "==> 已把全部 ttf 平铺安装 → ~/Library/Fonts"
+else
+    mkdir -p "$HOME/.local/share/fonts"
+    extract_zip "$TMP_ZIP" "$HOME/.local/share/fonts/FiraCode"
+    rm -f "$TMP_ZIP"
+    echo "==> 已解压 → ~/.local/share/fonts/FiraCode"
+fi
 
 if command -v fc-cache >/dev/null 2>&1; then
     fc-cache -f >/dev/null 2>&1 || true

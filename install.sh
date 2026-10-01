@@ -124,14 +124,7 @@ append_loader() {
 # bash:~/.bashrc(Linux / WSL / Git Bash;macOS 上用 bash 的用户)
 append_loader "$HOME/.bashrc"
 
-# zsh:macOS 默认 shell;Linux 上装过 zsh 或正在用 zsh 的用户也一并加载
-NEED_ZSHRC=false
 if command -v zsh >/dev/null 2>&1; then
-    if [[ "$PLATFORM" == macos || -f "$HOME/.zshrc" || "${SHELL-}" == */zsh ]]; then
-        NEED_ZSHRC=true
-    fi
-fi
-if $NEED_ZSHRC; then
     append_loader "$HOME/.zshrc"
 fi
 
