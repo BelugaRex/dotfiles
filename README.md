@@ -41,7 +41,7 @@ cd dotfiles-main && bash install.sh && exec bash   # macOS: exec zsh
 `install.sh` 会自动探测平台（幂等，可重复执行）：
 
 1. **默认安装 starship** 到用户级 `~/.local/bin`（无需 sudo；macOS 有 brew 走 `brew install`，否则官方脚本；已装则跳过，加 `--without-starship` 可显式跳过）
-2. **默认安装 FiraCode Nerd Font** 到用户级字体目录（幂等；服务器上无害但用不到，可加 `--without-font` 省一次 60MB 下载；Windows Git Bash 会提示改用 install.ps1）
+2. **默认安装 FiraCode Nerd Font** 到用户级字体目录（幂等；服务器上无害但用不到，可加 `--without-font` 省一次约 30MB 下载；Windows Git Bash 会提示改用 install.ps1）
 3. 把本仓库的 `starship.toml` 软链到 `~/.config/`（原有文件自动备份；软链失败时退化为复制）
 4. 追加 loader 到 `~/.bashrc`；只要机器上装了 zsh 也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）——日后切 zsh 立即生效
 

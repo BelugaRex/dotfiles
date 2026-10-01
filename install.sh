@@ -3,7 +3,7 @@
 # 用法:
 #   bash install.sh                      # 完整安装(starship + 字体 + 软链配置 + shell loader + skills 同步)
 #   bash install.sh --without-starship   # 跳过 starship(已装过/网络受限); --with-starship 兼容保留
-#   bash install.sh --without-font       # 跳过 FiraCode Nerd Font(服务器上用不到时可省 60MB 下载)
+#   bash install.sh --without-font       # 跳过 FiraCode Nerd Font(服务器上用不到时可省约 30MB 下载)
 # 说明:
 #   Windows 原生(PowerShell)没有 bash,无法运行本脚本,
 #   请在原生 PowerShell 里执行 powershell/install.ps1(见 README「Windows 原生」)。
@@ -65,7 +65,7 @@ elif install_starship; then
     fi
 else
     echo "==> starship 自动安装失败(网络受限?)"
-    echo "    联网后重跑 'bash install.sh' 即可(各步骤幂等); 手动安装见 README「在新机器上使用」."
+    echo "    联网后重跑 'bash install.sh' 即可(各步骤幂等); 手动安装见 README「从零恢复」."
 fi
 
 # ---------- 2. FiraCode Nerd Font(用户级安装) ----------

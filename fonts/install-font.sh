@@ -77,11 +77,6 @@ if font_already_installed; then
     exit 0
 fi
 
-if ! command -v unzip >/dev/null 2>&1; then
-    echo "错误: 需要 unzip, 请先安装(sudo apt install unzip 或 brew install unzip)" >&2
-    exit 1
-fi
-
 # macOS 有 brew 优先走 cask(自动管理字体目录与版本)
 if [ "$PLATFORM" = macos ] && command -v brew >/dev/null 2>&1; then
     if brew list --cask font-fira-code-nerd-font >/dev/null 2>&1; then
@@ -106,12 +101,12 @@ extract_zip() {
         echo "==> 未找到 unzip, 改用 python3 zipfile 解压"
         python3 -m zipfile -e "$1" "$2"
     else
-        echo "错误: 解压需要 unzip 或 python3 之一, 都没有请先装一个" >&2
+        echo "错误: 解压需要 unzip 或 python3 之一, 都没有请先装一个(Ubuntu: sudo apt install unzip)" >&2
         return 1
     fi
 }
 
-echo "==> 下载 FiraCode Nerd Font(约 60MB, 来自 nerd-fonts releases)..."
+echo "==> 下载 FiraCode Nerd Font(约 30MB, 来自 nerd-fonts releases)..."
 curl -fSL "$FONT_ZIP_URL" -o "$TMP_ZIP"
 if [ "$PLATFORM" = macos ]; then
     EXTRACT_DIR=$(mktemp -d)
