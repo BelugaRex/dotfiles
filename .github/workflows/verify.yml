@@ -1,0 +1,27 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 技能包隔离测试
+        run: python3 -I -B tests/verify_skills.py
+
+      - name: shell 语法与静态检查
+        run: |
+          bash -n install.sh
+          bash -n bashrc.d/custom.sh
+          bash -n fonts/install-font.sh
+          # 只拦截硬错误; 风格类提示交给本地手动跑
+          shellcheck -S error install.sh bashrc.d/custom.sh fonts/install-font.sh

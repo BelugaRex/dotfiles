@@ -36,12 +36,15 @@ if [ -n "${BASH_VERSION-}" ]; then
 fi
 if [ -n "${ZSH_VERSION-}" ]; then
     # zsh 的等效行为: 多会话共享历史 + 忽略重复与空格开头的命令
+    # 历史文件行数由 SAVEHIST 控制(HISTFILESIZE 在 zsh 中无效)
+    SAVEHIST=20000
     setopt histignorealldups sharehistory 2>/dev/null
 fi
 
 # ---------- 常用别名 ----------
 # 颜色支持: 有 dircolors 的 GNU 环境用 --color;macOS(BSD ls)退回 -G
-if [ -x /usr/bin/dircolors ]; then
+# 用 command -v 而非硬编码 /usr/bin/dircolors(Nix / 自定义前缀也能命中)
+if command -v dircolors >/dev/null 2>&1; then
     eval "$(dircolors -b)"
     alias ls='ls --color=auto'
     alias grep='grep --color=auto'

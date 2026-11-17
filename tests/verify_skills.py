@@ -178,6 +178,48 @@ class SkillPackageTests(unittest.TestCase):
                              "# user starship\n")
             self.assertFalse(log.exists(), "Installer attempted a download")
 
+    def test_installer_help_and_skill_backup(self):
+        with tempfile.TemporaryDirectory(prefix="dotfiles-ux-") as directory:
+            base = Path(directory)
+            repo, home = base / "repo", base / "home"
+            repo.mkdir()
+            home.mkdir()
+            shutil.copy2(ROOT / "install.sh", repo / "install.sh")
+            shutil.copytree(ROOT / "config", repo / "config")
+            shutil.copytree(ROOT / "bashrc.d", repo / "bashrc.d")
+            for name in ENTRIES:
+                source = repo / "skills" / name
+                source.mkdir(parents=True)
+                (source / "SKILL.md").write_text("packaged version\n")
+            stubs = base / "bin"
+            stubs.mkdir()
+            log = base / "network-attempts"
+            for command in ("curl", "wget", "brew", "winget"):
+                stub = stubs / command
+                stub.write_text(f"#!/bin/sh\nprintf 'blocked\\n' >> '{log}'\nexit 97\n")
+                stub.chmod(0o755)
+            env = clean_env(home)
+            env["PATH"] = str(stubs) + os.pathsep + os.defpath
+            # --help 必须零副作用: 打印帮助, 且不创建任何 HOME 内容
+            help_text = self.command(["bash", repo / "install.sh", "--help"], cwd=repo, env=env)
+            self.assertIn("--with-font", help_text)
+            self.assertFalse((home / ".bashrc").exists())
+            self.assertFalse((home / ".agents").exists())
+            # 有本地差异的技能: 覆盖前必须留一份时间戳备份
+            current = home / ".agents/skills/pua"
+            current.mkdir(parents=True)
+            (current / "SKILL.md").write_text("local edit\n")
+            self.command(["bash", repo / "install.sh", "--without-starship",
+                          "--without-font"], cwd=repo, env=env)
+            self.assertEqual((current / "SKILL.md").read_text(), "packaged version\n")
+            backups = sorted((home / ".agents/skills-backup").glob("*/pua/SKILL.md"))
+            self.assertEqual([p.read_text() for p in backups], ["local edit\n"])
+            # 内容一致时重跑不再产生新备份(幂等)
+            self.command(["bash", repo / "install.sh", "--without-starship",
+                          "--without-font"], cwd=repo, env=env)
+            self.assertEqual(len(list((home / ".agents/skills-backup").iterdir())), 1)
+            self.assertFalse(log.exists(), "Installer attempted a download")
+
     def test_caveman_synthetic_eligibility_and_candidates(self):
         scripts = SKILLS / "caveman/scripts"
         spec = importlib.util.spec_from_file_location("skill_detect", scripts / "detect.py")

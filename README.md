@@ -11,6 +11,15 @@
 $ ls
 ```
 
+## 目录
+
+- [从零恢复（双端全新机器）](#从零恢复双端全新机器)
+- [rtk（Token-Optimized CLI）](#rtktoken-optimized-cli)
+- [字体美化（本地终端，服务器无需安装）](#字体美化本地终端服务器无需安装)
+- [脱敏要求（分享 / AI 会话前必做）](#脱敏要求分享--ai-会话前必做)
+- [Agent Skills（AI 编程助手技能包）](#agent-skillsai-编程助手技能包)
+- [目录结构](#目录结构)
+
 ## 从零恢复（双端全新机器）
 
 目标是：服务器和客户端**都是空白机器**时，各跑一条命令即可恢复。SSH 密钥、token 等凭据**不在本仓库覆盖范围内**，需单独恢复。
@@ -41,9 +50,12 @@ cd dotfiles-main && bash install.sh && exec bash   # macOS: exec zsh
 `install.sh` 会自动探测平台（幂等，可重复执行）：
 
 1. **默认安装 starship** 到用户级 `~/.local/bin`（无需 sudo；macOS 有 brew 走 `brew install`，否则官方脚本；已装则跳过，加 `--without-starship` 可显式跳过）
-2. **默认安装 FiraCode Nerd Font** 到用户级字体目录（幂等；服务器上无害但用不到，可加 `--without-font` 省一次约 30MB 下载；Windows Git Bash 会提示改用 install.ps1）
+2. **默认安装 FiraCode Nerd Font** 到用户级字体目录（幂等；SSH / 无图形会话自动跳过，避免白下载约 30MB，加 `--with-font` 可强制安装；Windows Git Bash 会提示改用 install.ps1）
 3. 把本仓库的 `starship.toml` 软链到 `~/.config/`（原有文件自动备份；软链失败时退化为复制）
 4. 追加 loader 到 `~/.bashrc`；只要机器上装了 zsh 也一并追加到 `~/.zshrc`（改写前自动备份，不动原内容）——日后切 zsh 立即生效
+5. 同步 `skills/` 到 `~/.agents/skills/`（覆盖前把有本地差异的旧版本自动备份到 `~/.agents/skills-backup/`）
+
+查看全部选项：`bash install.sh --help`（只打印帮助，不修改任何文件）。
 
 **macOS 用户**：与上面完全同一套流程，无需额外步骤——脚本自动探测 Darwin、默认安装 starship（有 brew 走 `brew install starship`，否则官方脚本装到 `~/.local/bin`）、loader 自动写入 `~/.zshrc`、字体自动装到用户目录，提示符即由 starship 渲染。
 
@@ -161,7 +173,7 @@ AI 编码助手（Copilot 等）在本机工作时引用的输出同样适用本
 
 这是 **Copilot 技能文本与辅助文件**，不是宿主插件：安装不注册生命周期 hooks、后台循环、自动上下文注入或确定性停止门禁；技能自动选择依赖宿主，新会话才会重新发现元数据。`cavecrew` 所需的两个自定义代理模板不在本仓库安装范围内，须另行配置；没有相应能力时不能假装已执行。技能内保留的其他宿主脚本/示例不代表已经启用。
 
-`install.sh` 会把它们**复制**为真实目录到 `~/.agents/skills/`（同名技能以仓库为准，重跑即覆盖更新）。不用软链是因为部分工具用 `readdir` 判断目录类型，不跟随软链。**安装前请备份同名技能的本地修改**。仓库外的目录、有效软链及悬空软链均不改动；原生 PowerShell 安装器目前只安装终端环境，不同步技能。
+`install.sh` 会把它们**复制**为真实目录到 `~/.agents/skills/`（同名技能以仓库为准，重跑即覆盖更新）。不用软链是因为部分工具用 `readdir` 判断目录类型，不跟随软链。覆盖前脚本会把**与仓库有差异**的旧目录自动备份到 `~/.agents/skills-backup/<时间戳>/<技能名>/`，内容完全一致时不产生备份。仓库外的目录、有效软链及悬空软链均不改动；原生 PowerShell 安装器目前只安装终端环境，不同步技能。
 
 ### 从旧版 49 入口升级
 
@@ -176,18 +188,20 @@ AI 编码助手（Copilot 等）在本机工作时引用的输出同样适用本
 
 ### 验证
 
-运行 `python3 -I -B tests/verify_skills.py`（Python 3.11+，仅标准库）。测试检查技能入口、引用、脚本语法、脱敏约束，并用合成技能及临时 HOME 验证安装覆盖、幂等性和第三方技能保护；辅助脚本使用临时用例。测试不安装程序/字体，不读取 `agi-gallery` 正文、真实会话或凭据，不改当前 HOME。Linux 测试通过不等于 macOS/Windows 实机或新会话自动发现已经验证。
+运行 `python3 -I -B tests/verify_skills.py`（Python 3.11+，仅标准库）。测试检查技能入口、引用、脚本语法、脱敏约束，并用合成技能及临时 HOME 验证安装覆盖、幂等性、技能备份和第三方技能保护；辅助脚本使用临时用例。测试不安装程序/字体，不读取 `agi-gallery` 正文、真实会话或凭据，不改当前 HOME。同一命令也会在 GitHub Actions（`.github/workflows/verify.yml`）对每次 push / PR 执行，并附加 `bash -n` 与 `shellcheck -S error`。Linux 测试通过不等于 macOS/Windows 实机或新会话自动发现已经验证。
 
 ## 目录结构
 
 ```
 dotfiles/
-├── install.sh             # 一键安装脚本(自动探测 Linux/macOS/Git Bash)
-├── bashrc.d/custom.sh     # bash/zsh 通用自定义(PATH/历史/别名/starship/nvm)
-├── powershell/install.ps1 # Windows 原生一键安装(starship + 字体 + profile loader)
-├── powershell/profile.ps1 # Windows 原生 PowerShell profile(由 install.ps1 写入 loader)
-├── config/starship.toml   # starship 主题(ohmyzsh ys 复刻,去 VCS 模块)
-├── fonts/install-font.sh  # FiraCode Nerd Font 一键安装(用户级,Linux/macOS)
-├── tests/verify_skills.py # 标准库隔离验证(不修改真实 HOME)
-└── skills/                # 12 个技能入口(单入口整合的 Copilot 适配快照)
+├── install.sh                   # 一键安装脚本(自动探测 Linux/macOS/Git Bash)
+├── .gitignore                   # 忽略 __pycache__ / 系统垃圾文件
+├── .github/workflows/verify.yml  # push / PR 自动跑测试与 shell 检查
+├── bashrc.d/custom.sh           # bash/zsh 通用自定义(PATH/历史/别名/starship/nvm)
+├── powershell/install.ps1       # Windows 原生一键安装(starship + 字体 + profile loader)
+├── powershell/profile.ps1       # Windows 原生 PowerShell profile(由 install.ps1 写入 loader)
+├── config/starship.toml         # starship 主题(ohmyzsh ys 复刻,去 VCS 模块)
+├── fonts/install-font.sh        # FiraCode Nerd Font 一键安装(用户级,Linux/macOS)
+├── tests/verify_skills.py       # 标准库隔离验证(不修改真实 HOME)
+└── skills/                      # 12 个技能入口(单入口整合的 Copilot 适配快照)
 ```

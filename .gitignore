@@ -1,0 +1,7 @@
+# Python(测试运行产物)
+__pycache__/
+*.py[cod]
+
+# 编辑器 / 系统垃圾文件
+.DS_Store
+Thumbs.db

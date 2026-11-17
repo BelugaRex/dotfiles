@@ -16,7 +16,18 @@
 set -euo pipefail
 
 FONT_ZIP_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip"
-TMP_ZIP="${TMPDIR:-/tmp}/FiraCode.zip"
+
+usage() {
+    cat <<'EOF'
+用法: bash fonts/install-font.sh [--help]
+
+用户级安装 FiraCode Nerd Font(Linux / macOS, 无需 sudo, 幂等可重跑)。
+Windows 客户端请在原生 PowerShell 里执行 powershell/install.ps1。
+EOF
+}
+case "${1-}" in
+    -h|--help) usage; exit 0 ;;
+esac
 
 case "$(uname -s 2>/dev/null || echo unknown)" in
     Linux*)               PLATFORM=linux ;;
@@ -107,18 +118,24 @@ extract_zip() {
 }
 
 echo "==> 下载 FiraCode Nerd Font(约 30MB, 来自 nerd-fonts releases)..."
+# 用独立临时目录承载 zip 与解压产物: 并发安全, 失败/中断也不留垃圾(teardown 见下)
+TMP_DIR=""
+cleanup() {
+    if [ -n "$TMP_DIR" ]; then rm -rf "$TMP_DIR"; fi
+}
+trap cleanup EXIT
+TMP_DIR="$(mktemp -d)"
+TMP_ZIP="$TMP_DIR/FiraCode.zip"
 curl -fSL "$FONT_ZIP_URL" -o "$TMP_ZIP"
 if [ "$PLATFORM" = macos ]; then
-    EXTRACT_DIR=$(mktemp -d)
+    EXTRACT_DIR="$TMP_DIR/unzipped"
+    mkdir -p "$EXTRACT_DIR"
     extract_zip "$TMP_ZIP" "$EXTRACT_DIR"
     mv "$EXTRACT_DIR"/*.ttf "$HOME/Library/Fonts/"
-    rm -rf "$EXTRACT_DIR"
-    rm -f "$TMP_ZIP"
     echo "==> 已把全部 ttf 平铺安装 → ~/Library/Fonts"
 else
     mkdir -p "$HOME/.local/share/fonts"
     extract_zip "$TMP_ZIP" "$HOME/.local/share/fonts/FiraCode"
-    rm -f "$TMP_ZIP"
     echo "==> 已解压 → ~/.local/share/fonts/FiraCode"
 fi
 
