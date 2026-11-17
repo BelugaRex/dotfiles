@@ -15,7 +15,42 @@
 
 set -u
 
+# Optional probe distinguishes ambiguity from the empty legacy-root result.
+# Both modes keep stdout data-only and always exit zero.
+CHECK_AMBIGUITY=0
+if [ "${1:-}" = "--check-ambiguity" ]; then
+    CHECK_AMBIGUITY=1
+    shift
+fi
 PLAN_ROOT="${1:-${PWD}/.planning}"
+
+# --- PWF_PLAN_ROOT: absolute plan-root binding (issue #212). ---
+# A thread whose cwd is a shared PARENT of the real project (e.g. /workspace
+# holding /workspace/project with its own .planning) resolves the parent's
+# plan on every call and never sees the nested one. PWF_PLAN_ROOT names the
+# project root whose .planning must be used. It is the highest-precedence
+# binding: it overrides both the ${PWD} default and the positional argument,
+# because an adapter passing ".planning" is spelling out the cwd default, not
+# overriding a user's deliberate pin. A pin that is not a directory fails
+# CLOSED: the resolver emits nothing, so no caller can be handed the
+# ambiguous cwd plan the pin was escaping (the injection routes own the
+# user-facing notice; stdout here is the data channel and must stay clean).
+# With the variable unset, behavior is byte-identical to the legacy shape.
+PWF_ROOT_PIN=""
+if [ -n "${PWF_PLAN_ROOT:-}" ]; then
+    case "${PWF_PLAN_ROOT}" in
+        \\\\*|//*|[A-Za-z]:[!\\/]*) _pwf_pin_absolute=0 ;;
+        /*|[A-Za-z]:[\\/]*) _pwf_pin_absolute=1 ;;
+        *) _pwf_pin_absolute=0 ;;
+    esac
+    if [ "$_pwf_pin_absolute" = "1" ] && [ -d "${PWF_PLAN_ROOT}" ]; then
+        PWF_ROOT_PIN="${PWF_PLAN_ROOT}"
+        PLAN_ROOT="${PWF_PLAN_ROOT}/.planning"
+    else
+        exit 0
+    fi
+fi
+
 ACTIVE_FILE="${PLAN_ROOT}/.active_plan"
 
 # Plan-id safe-identifier check. Rejects whitespace, path separators, leading
@@ -62,10 +97,54 @@ norm_slashes() {
     done
 }
 
+# Return true when a candidate path names the Microsoft Store WindowsApps
+# directory. Store app aliases are not stable interpreter binaries and may
+# present as executable while refusing script execution. Matching is
+# case-insensitive and works before or after Windows slash normalization.
+is_windowsapps_path() {
+    norm_slashes "$1"
+    case "${NORM_OUT}" in
+        [Ww][Ii][Nn][Dd][Oo][Ww][Ss][Aa][Pp][Pp][Ss]|\
+        [Ww][Ii][Nn][Dd][Oo][Ww][Ss][Aa][Pp][Pp][Ss]/*|\
+        */[Ww][Ii][Nn][Dd][Oo][Ww][Ss][Aa][Pp][Pp][Ss]|\
+        */[Ww][Ii][Nn][Dd][Oo][Ww][Ss][Aa][Pp][Pp][Ss]/*) return 0 ;;
+    esac
+    return 1
+}
+
+# Select only an interpreter path the caller explicitly trusted.
+# PWF_TRUSTED_PYTHON is preferred; PYTHON_BIN remains a compatibility alias.
+# PATH discovery is intentionally forbidden because resolver hooks can run in
+# repositories that control PATH. Windows-native absolute paths are converted
+# with Git Bash's fixed system cygpath, never a PATH-selected shim.
+trusted_python() {
+    for _tp_candidate in "${PWF_TRUSTED_PYTHON:-}" "${PYTHON_BIN:-}"; do
+        [ -n "${_tp_candidate}" ] || continue
+        case "${_tp_candidate}" in
+            \\\\*|//*) continue ;;
+            [A-Za-z]:[\\/]*)
+                is_windowsapps_path "${_tp_candidate}" && continue
+                _tp_cygpath="/usr/bin/cygpath.exe"
+                [ -f "${_tp_cygpath}" ] && [ -x "${_tp_cygpath}" ] || continue
+                _tp_candidate="$("${_tp_cygpath}" -u "${_tp_candidate}" 2>/dev/null)" \
+                    || continue
+                ;;
+            /*) ;;
+            *) continue ;;
+        esac
+        is_windowsapps_path "${_tp_candidate}" && continue
+        [ -f "${_tp_candidate}" ] || continue
+        [ -x "${_tp_candidate}" ] || continue
+        printf "%s\n" "${_tp_candidate}"
+        return 0
+    done
+    return 1
+}
+
 # Portable path canonicalizer. realpath first (Linux, modern coreutils),
-# then readlink -f (older GNU), then python3/python os.path.realpath. Prints
-# the canonical absolute path on success; prints nothing and returns 1 on a
-# full miss so the caller can decide what to do. No python spawn on the happy
+# then readlink -f (older GNU), then an explicitly trusted Python interpreter.
+# Prints the canonical absolute path on success; prints nothing and returns 1
+# on a full miss so containment fails closed. No Python spawn on the happy
 # path: realpath/readlink cover Linux, WSL, Git-Bash, and modern macOS.
 canonicalize() {
     target="$1"
@@ -77,12 +156,9 @@ canonicalize() {
         out="$(readlink -f "${target}" 2>/dev/null)" && [ -n "${out}" ] && {
             printf "%s\n" "${out}"; return 0; }
     fi
-    if command -v python3 >/dev/null 2>&1; then
-        out="$(python3 -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "${target}" 2>/dev/null)" \
-            && [ -n "${out}" ] && { printf "%s\n" "${out}"; return 0; }
-    fi
-    if command -v python >/dev/null 2>&1; then
-        out="$(python -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "${target}" 2>/dev/null)" \
+    _canonical_python="$(trusted_python)" || _canonical_python=""
+    if [ -n "${_canonical_python}" ]; then
+        out="$("${_canonical_python}" -I -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "${target}" 2>/dev/null)" \
             && [ -n "${out}" ] && { printf "%s\n" "${out}"; return 0; }
     fi
     return 1
@@ -104,12 +180,17 @@ canonicalize() {
 # backslash-normalized before comparison for Windows-native canonicalizers.
 # The root is computed once per run: the newest-mtime scan calls this guard
 # per plan dir, and each canonicalize costs a process spawn on Windows.
+#
+# With a PWF_PLAN_ROOT pin (issue #212) containment is checked against THAT
+# root instead of the cwd: candidates arrive ${PWF_PLAN_ROOT}/-prefixed, so
+# both sides canonicalize through the same path spelling. Unpinned keeps the
+# relative "." root — byte-identical to the legacy check.
 ROOT_REAL=""
 ROOT_REAL_SET=0
 is_within_root() {
     candidate="$1"
     if [ "${ROOT_REAL_SET}" = "0" ]; then
-        ROOT_REAL="$(canonicalize ".")" || ROOT_REAL=""
+        ROOT_REAL="$(canonicalize "${PWF_ROOT_PIN:-.}")" || ROOT_REAL=""
         norm_slashes "${ROOT_REAL}"
         ROOT_REAL="${NORM_OUT}"
         ROOT_REAL_SET=1
@@ -122,10 +203,16 @@ is_within_root() {
     # both sides from the same cwd base is the only spelling-stable comparison.
     # The emitted result keeps the original absolute candidate — only the
     # containment check uses the relative form.
-    case "${candidate}" in
-        "${PWD}"/*) check_target=".${candidate#"${PWD}"}" ;;
-        *) check_target="${candidate}" ;;
-    esac
+    # Pinned resolution skips the rewrite: candidate and root then share the
+    # ${PWF_PLAN_ROOT} spelling, so both canonicalize directly from it.
+    if [ -n "${PWF_ROOT_PIN}" ]; then
+        check_target="${candidate}"
+    else
+        case "${candidate}" in
+            "${PWD}"/*) check_target=".${candidate#"${PWD}"}" ;;
+            *) check_target="${candidate}" ;;
+        esac
+    fi
     cand_real="$(canonicalize "${check_target}")" || cand_real=""
     norm_slashes "${cand_real}"
     cand_real="${NORM_OUT}"
@@ -141,7 +228,8 @@ is_within_root() {
 }
 
 # Portable mtime resolver. Tries GNU stat, BSD stat, BSD/macOS date -r,
-# python3, then perl. Returns "0" on full miss so callers can sort.
+# then an explicitly trusted Python interpreter. Returns "0" on a full miss
+# so newest-plan selection fails closed instead of executing from PATH.
 mtime_of() {
     target="$1"
     out="$(stat -c '%Y' "${target}" 2>/dev/null)"
@@ -150,25 +238,24 @@ mtime_of() {
     if [ -n "${out}" ]; then printf "%s\n" "${out}"; return 0; fi
     out="$(date -r "${target}" +%s 2>/dev/null)"
     if [ -n "${out}" ]; then printf "%s\n" "${out}"; return 0; fi
-    if command -v python3 >/dev/null 2>&1; then
-        out="$(python3 -c "import os,sys;print(int(os.stat(sys.argv[1]).st_mtime))" "${target}" 2>/dev/null)"
-        if [ -n "${out}" ]; then printf "%s\n" "${out}"; return 0; fi
-    fi
-    if command -v python >/dev/null 2>&1; then
-        out="$(python -c "import os,sys;print(int(os.stat(sys.argv[1]).st_mtime))" "${target}" 2>/dev/null)"
-        if [ -n "${out}" ]; then printf "%s\n" "${out}"; return 0; fi
-    fi
-    if command -v perl >/dev/null 2>&1; then
-        out="$(perl -e 'print((stat shift)[9])' "${target}" 2>/dev/null)"
+    _mtime_python="$(trusted_python)" || _mtime_python=""
+    if [ -n "${_mtime_python}" ]; then
+        out="$("${_mtime_python}" -I -c "import os,sys;print(int(os.stat(sys.argv[1]).st_mtime))" "${target}" 2>/dev/null)"
         if [ -n "${out}" ]; then printf "%s\n" "${out}"; return 0; fi
     fi
     printf "0\n"
 }
 
+# A linked plan directory (symlink or junction; `-L` sees both under Git
+# Bash) is never selectable: not by PLAN_ID, not by the pointer, not by the
+# newest-mtime scan, and it never counts below (#270). Containment alone let
+# a link that stays inside the root be selected while the counter skipped
+# it, so one real plan plus a newer linked one became an mtime guess again.
 resolve_from_env() {
     plan_id="${PLAN_ID:-}"
     slug_is_valid "${plan_id}" || return 1
     candidate="${PLAN_ROOT}/${plan_id}"
+    [ -L "${candidate}" ] && return 1
     if [ -d "${candidate}" ] && is_within_root "${candidate}"; then
         printf "%s\n" "${candidate}"
         return 0
@@ -187,6 +274,7 @@ resolve_from_active_file() {
     esac
     slug_is_valid "${plan_id}" || return 1
     candidate="${PLAN_ROOT}/${plan_id}"
+    [ -L "${candidate}" ] && return 1
     if [ -d "${candidate}" ] && is_within_root "${candidate}"; then
         printf "%s\n" "${candidate}"
         return 0
@@ -207,6 +295,7 @@ resolve_latest_dir() {
         case "${name}" in
             .*) continue ;;
         esac
+        [ -L "${clean}" ] && continue
         slug_is_valid "${name}" || continue
         [ -f "${clean}/task_plan.md" ] || continue
         is_within_root "${clean}" || continue
@@ -223,7 +312,58 @@ resolve_latest_dir() {
     return 1
 }
 
-if resolve_from_env; then exit 0; fi
+# A set PLAN_ID is a BINDING, not a hint (issue #237).
+#
+# resolve_from_env returns 1 both when no selector was set and when the
+# selector was rejected, so continuing the chain after it turned a
+# one-character typo into a silent switch: .active_plan or newest-by-mtime
+# answered instead, attest-plan.sh locked THAT plan at rc=0, and injection
+# followed the attestation onto it. commands/plan-attest.md already promised
+# the opposite ("It never falls back to another plan").
+#
+# Any non-empty PLAN_ID therefore terminates resolution here, whether it was
+# rejected for slug shape (traversal), for naming no directory, or for failing
+# containment. The caller receives an empty result and takes its own
+# fail-closed path rather than a different plan. PWF_PLAN_ROOT, the sibling
+# selector, has failed closed on any bad value since #212; the two selectors
+# now agree.
+#
+# An EMPTY PLAN_ID still means "unset": init-session.sh passes
+# PLAN_ID="${PLAN_ID:-}" into attest-plan.sh on the legacy path and depends on
+# that spelling resolving the root plan.
+#
+# Exit status stays 0 on the refusal (see the header contract). Emptiness is
+# the fail-closed signal on this channel, exactly as the PWF_PLAN_ROOT guard
+# above already does it; a non-zero status would kill callers running under
+# set -e for a condition that is not an internal error.
+# A shared pointer or mtime is not a per-session binding (issue #240).
+# Count conservatively, just like injection: slug-valid live plan files.
+# The legacy root joins the count only when session isolation is armed.
+PLAN_AMBIGUOUS=0
+if [ -z "${PLAN_ID:-}" ]; then
+    PLAN_COUNT=0
+    if [ -d "${PLAN_ROOT}/sessions" ] && [ -f "${PWF_ROOT_PIN:-.}/task_plan.md" ]; then
+        PLAN_COUNT=1
+    fi
+    for plan_candidate in "${PLAN_ROOT}"/*/task_plan.md; do
+        plan_candidate_dir="${plan_candidate%/task_plan.md}"
+        [ -L "$plan_candidate_dir" ] && continue
+        [ -f "$plan_candidate" ] || continue
+        slug_is_valid "${plan_candidate_dir##*/}" || continue
+        PLAN_COUNT=$((PLAN_COUNT + 1))
+        if [ "$PLAN_COUNT" -gt 1 ]; then PLAN_AMBIGUOUS=1; break; fi
+    done
+fi
+if [ "$CHECK_AMBIGUITY" = "1" ]; then
+    [ "$PLAN_AMBIGUOUS" = "1" ] && printf '%s\n' 'PWF_PLAN_AMBIGUOUS_V1'
+    exit 0
+fi
+[ "$PLAN_AMBIGUOUS" = "1" ] && exit 0
+
+if [ -n "${PLAN_ID:-}" ]; then
+    resolve_from_env && exit 0
+    exit 0
+fi
 if resolve_from_active_file; then exit 0; fi
 if resolve_latest_dir; then exit 0; fi
 exit 0

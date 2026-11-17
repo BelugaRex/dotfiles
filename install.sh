@@ -134,10 +134,7 @@ fi
 # ---------- 5. agent skills(复制为真实目录,兼容不跟随软链的工具,如 Copilot MCP 扩展) ----------
 if [[ -d "$DOTFILES_DIR/skills" ]]; then
     mkdir -p "$HOME/.agents/skills"
-    # 清理旧版软链方式的链接项(只删软链,不动真实目录)
-    for ITEM in "$HOME"/.agents/skills/*; do
-        [[ -L "$ITEM" ]] && rm -f "$ITEM"
-    done
+    # 只替换仓库内同名项(含旧软链),保留其他工具安装的目录和链接。
     N=0
     for SKILL_DIR in "$DOTFILES_DIR"/skills/*/; do
         NAME=$(basename "$SKILL_DIR")

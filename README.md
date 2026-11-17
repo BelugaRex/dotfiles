@@ -142,21 +142,41 @@ AI 编码助手（Copilot 等）在本机工作时引用的输出同样适用本
 
 ## Agent Skills（AI 编程助手技能包）
 
-`skills/` 内是本人使用的 agent skills，共 **49 个**，归属 4 个技能家族 + 一批独立技能：
+`skills/` 保存当前使用的 **12 个入口**，以本机 `~/.agents/skills/` 的审定版本为发布快照（2026-11-17）。PUA 和 Caveman 已整合为单入口，通常用自然语言选择模式，不再安装一批独立别名。
 
-| 家族 | 数量 | 说明 |
-|---|---|---|
-| `caveman` 系列 | 6 | 超压缩沟通模式（省 token），含 commit 生成、review、统计等子命令 |
-| `pua` 系列 | 21 | 生产率教练模式；多语言版（en/ja）+ 子命令别名（kpi / loop / on / off / pro / team-status 等） |
-| `planning-with-files` 系列 | 7 | Manus 式文件规划（task_plan / findings / progress），含 ar / de / es / zh / zht 翻译版 |
-| 职级模式 `p7` `p9` `p10` | 3 | P7 方案执行 / P9 Tech Lead 任务拆解 / P10 CTO 战略规划 |
-| 独立技能 | 12 | 见下 |
+| 入口 | 说明 |
+|---|---|
+| `pua` | 查证与生产率方法；统一 P7/P9/P10、pro/KPI、mama/yes/ding、shot、有限次迭代及中英日输出 |
+| `caveman` | 简洁输出及文言强度；按任务选择提交信息、代码审查、指定文档压缩和统计说明 |
+| `planning-with-files` | 三文件持久规划；上游快照 **3.28.2**，Copilot 适配 **copilot.1** |
+| `answer-framework` | 结构化、基于证据的问答 |
+| `cavecrew` | 只读分析与有界实现子代理的协作约定 |
+| `double-check` | 修改后连续两次验证与提交约定 |
+| `karpathy-guidelines` | 最小改动、明确假设与可验证目标 |
+| `i-have-adhd` | 手动启用的 ADHD 友好呈现，不截断实际分析范围 |
+| `improve-codebase-architecture` | 手动启用的架构分析与报告；缺少外部技能时使用本地参考 |
+| `always-ask-next` | 完成后提供三个相关后续选项和自由输入 |
+| `refactoring-fowler` | 按 Fowler 方法识别代码异味、小步重构并保持行为 |
+| `agi-gallery` | 保留既有版本，本次同步不更新 |
 
-独立技能：`answer-framework`（问答框架）、`cavecrew`（子代理协作）、`double-check`（改动双重校验）、`karpathy-guidelines`（编码守则）、`ding`（钉内/钉外职场提醒）、`mama`（妈妈唠叨模式）、`yes`（夸夸模式）、`shot`（PUA 速查注入）、`pro`（PUA Pro 扩展）、`i-have-adhd`（ADHD 友好输出）、`improve-codebase-architecture`（架构扫描报告）、`agi-gallery`
+这是 **Copilot 技能文本与辅助文件**，不是宿主插件：安装不注册生命周期 hooks、后台循环、自动上下文注入或确定性停止门禁；技能自动选择依赖宿主，新会话才会重新发现元数据。`cavecrew` 所需的两个自定义代理模板不在本仓库安装范围内，须另行配置；没有相应能力时不能假装已执行。技能内保留的其他宿主脚本/示例不代表已经启用。
 
-`install.sh` 会把它们**复制**为真实目录到 `~/.agents/skills/`（仓库为唯一来源，重跑即覆盖更新）。不用软链是因为部分工具（如 VS Code 的 Copilot MCP + Agent Skills Manager 扩展）用 `readdir` 判断目录类型，不跟随软链，会导致技能列表显示为空。
+`install.sh` 会把它们**复制**为真实目录到 `~/.agents/skills/`（同名技能以仓库为准，重跑即覆盖更新）。不用软链是因为部分工具用 `readdir` 判断目录类型，不跟随软链。**安装前请备份同名技能的本地修改**。仓库外的目录、有效软链及悬空软链均不改动；原生 PowerShell 安装器目前只安装终端环境，不同步技能。
 
-每次更新仓库后重跑 `install.sh` 即可同步；通过其他工具（如该扩展的 skills.sh 搜索）安装到 `~/.agents/skills/` 的技能不会被脚本动到（除非与仓库内技能同名，以仓库为准）。
+### 从旧版 49 入口升级
+
+本轮新增 `always-ask-next`、`refactoring-fowler`，并从仓库退役以下 **39 个旧入口**；旧版本仍在 Git 历史中。已有机器上的旧目录/链接**不会自动删除**，确认没有个人修改并自行备份后，再按下列清单处理，避免误删其他来源的同名技能：
+
+- Caveman：`caveman-commit`、`caveman-compress`、`caveman-help`、`caveman-review`、`caveman-stats`。
+- PUA 别名：`pua-cancel-loop`、`pua-en`、`pua-flavor`、`pua-ja`、`pua-kpi`、`pua-loop`、`pua-mama`、`pua-off`、`pua-offline`、`pua-on`、`pua-p10`、`pua-p7`、`pua-p9`、`pua-pro`、`pua-reap-orphans`、`pua-survey`、`pua-team-status`、`pua-teardown-all`、`pua-trae`、`pua-yes`。
+- 角色/风格：`ding`、`mama`、`p7`、`p9`、`p10`、`pro`、`shot`、`yes`。
+- 重复规划入口：`pi-planning-with-files`、`planning-with-files-ar`、`planning-with-files-de`、`planning-with-files-es`、`planning-with-files-zh`、`planning-with-files-zht`。多语言需求直接向当前技能说明即可。
+
+各技能的许可证和来源保留在对应目录；`LOCAL-PATCH.md` 说明本地适配与限制。PUA 上游快照未附 LICENSE 文件，保留该事实说明，不据此推定新的授权。私有维护快照、回滚记录、真实会话和个人资源不随仓库发布。
+
+### 验证
+
+运行 `python3 -I -B tests/verify_skills.py`（Python 3.11+，仅标准库）。测试检查技能入口、引用、脚本语法、脱敏约束，并用合成技能及临时 HOME 验证安装覆盖、幂等性和第三方技能保护；辅助脚本使用临时用例。测试不安装程序/字体，不读取 `agi-gallery` 正文、真实会话或凭据，不改当前 HOME。Linux 测试通过不等于 macOS/Windows 实机或新会话自动发现已经验证。
 
 ## 目录结构
 
@@ -168,5 +188,6 @@ dotfiles/
 ├── powershell/profile.ps1 # Windows 原生 PowerShell profile(由 install.ps1 写入 loader)
 ├── config/starship.toml   # starship 主题(ohmyzsh ys 复刻,去 VCS 模块)
 ├── fonts/install-font.sh  # FiraCode Nerd Font 一键安装(用户级,Linux/macOS)
-└── skills/                # 49 个 agent skills(pua / caveman / planning 等)
+├── tests/verify_skills.py # 标准库隔离验证(不修改真实 HOME)
+└── skills/                # 12 个技能入口(单入口整合的 Copilot 适配快照)
 ```
