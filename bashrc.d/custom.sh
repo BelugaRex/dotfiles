@@ -1,4 +1,5 @@
 # ~/.dotfiles/bashrc.d/custom.sh —— 个人 shell 自定义(跨平台)
+# shellcheck shell=bash   # 本文件被 bash 与 zsh 共同 source, 无 shebang; 按 bash 规则检查
 # 由 ~/.bashrc 或 ~/.zshrc 末尾的 dotfiles-loader 加载,bash(≥3.2)与 zsh 均可直接 source。
 # 适配:Linux(任意发行版 / WSL) / macOS(bash 或 zsh) / Windows Git Bash(MSYS2)。
 # Windows 原生 PowerShell 不使用本文件,见仓库 powershell/profile.ps1。
@@ -36,7 +37,8 @@ if [ -n "${BASH_VERSION-}" ]; then
 fi
 if [ -n "${ZSH_VERSION-}" ]; then
     # zsh 的等效行为: 多会话共享历史 + 忽略重复与空格开头的命令
-    # 历史文件行数由 SAVEHIST 控制(HISTFILESIZE 在 zsh 中无效)
+    # 历史文件行数由 SAVEHIST 控制(HISTFILESIZE 在 zsh 中无效); 该变量由 zsh 读取
+    # shellcheck disable=SC2034
     SAVEHIST=20000
     setopt histignorealldups sharehistory 2>/dev/null
 fi

@@ -144,7 +144,8 @@ append_loader() {
         return
     fi
     if [[ -f "$RC" ]]; then
-        local BACKUP_RC="$RC.bak.$(date +%Y%m%d%H%M%S)"
+        local BACKUP_RC
+        BACKUP_RC="$RC.bak.$(date +%Y%m%d%H%M%S)"
         cp -a "$RC" "$BACKUP_RC"
         echo "==> 已备份 $RC → $BACKUP_RC"
     fi

@@ -11,9 +11,10 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # 固定镜像: ubuntu-latest 将于 2026-10 迁移到 Ubuntu 26, 先锁定可复现环境
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: 技能包隔离测试
         run: python3 -I -B tests/verify_skills.py
@@ -23,5 +24,7 @@ jobs:
           bash -n install.sh
           bash -n bashrc.d/custom.sh
           bash -n fonts/install-font.sh
-          # 只拦截硬错误; 风格类提示交给本地手动跑
+          # 门禁只看 error 级(跨版本稳定); 风格类提示只报告不阻断, 避免误报让流水线变红
           shellcheck -S error install.sh bashrc.d/custom.sh fonts/install-font.sh
+          shellcheck -S warning install.sh bashrc.d/custom.sh fonts/install-font.sh \
+            || echo "::notice::shellcheck 报了 warning 级提示, 见上一步输出"
