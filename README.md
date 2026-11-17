@@ -47,6 +47,8 @@ curl -sSL https://github.com/BelugaRex/dotfiles/archive/refs/heads/main.tar.gz |
 cd dotfiles-main && bash install.sh && exec bash   # macOS: exec zsh
 ```
 
+想让机器长期可复现，可改用**版本化发布**（tag 形如 `v2026.11.18`）：把上面的 `refs/heads/main` 换成 `releases/download/v2026.11.18/dotfiles-v2026.11.18.tar.gz`，解压目录也随之变成 `dotfiles-v2026.11.18/`。发布由 `.github/workflows/release.yml` 在推送 tag 时自动打包并生成 Release。
+
 `install.sh` 会自动探测平台（幂等，可重复执行）：
 
 1. **默认安装 starship** 到用户级 `~/.local/bin`（无需 sudo；macOS 有 brew 走 `brew install`，否则官方脚本；已装则跳过，加 `--without-starship` 可显式跳过）
@@ -197,6 +199,7 @@ dotfiles/
 ├── install.sh                   # 一键安装脚本(自动探测 Linux/macOS/Git Bash)
 ├── .gitignore                   # 忽略 __pycache__ / 系统垃圾文件
 ├── .github/workflows/verify.yml  # push / PR 自动跑测试与 shell 检查
+├── .github/workflows/release.yml # 推送 v* tag 时打包并发 Release
 ├── bashrc.d/custom.sh           # bash/zsh 通用自定义(PATH/历史/别名/starship/nvm)
 ├── powershell/install.ps1       # Windows 原生一键安装(starship + 字体 + profile loader)
 ├── powershell/profile.ps1       # Windows 原生 PowerShell profile(由 install.ps1 写入 loader)

@@ -1,0 +1,34 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # 与 verify 保持一致: 固定镜像, 避免 ubuntu-latest 迁移带来的漂移
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 发布前自检
+        run: python3 -I -B tests/verify_skills.py
+
+      - name: 打包(tag 快照, 顶层带版本目录)
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          git archive --format=tar.gz --prefix="dotfiles-${TAG}/" \
+            -o "dotfiles-${TAG}.tar.gz" HEAD
+          ls -lh "dotfiles-${TAG}.tar.gz"
+
+      - name: 创建 Release(重复推送同一 tag 时覆盖附件)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          ASSET="dotfiles-${TAG}.tar.gz"
+          gh release create "$TAG" "$ASSET" --title "$TAG" --generate-notes \
+            || gh release upload "$TAG" "$ASSET" --clobber
